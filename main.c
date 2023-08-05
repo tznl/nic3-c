@@ -2,6 +2,7 @@
 #include <mysql.h>
 #include <string.h>
 #include <stdlib.h>
+#include <time.h>
 
 #include "discord.h"
 #include "log.h"
@@ -9,9 +10,11 @@
 #include "include/command.h"
 #include "include/main.h"
 
+MYSQL *conn;
 
 int main(int argc, char *argv[])
 {
+	srand(time(NULL));
 	mkdir("log", 0777);
 
 	const char *config_file;
@@ -23,9 +26,8 @@ int main(int argc, char *argv[])
 	struct discord *client = discord_config_init(config_file);
 	struct ccord_szbuf_readonly config_rtr;
 
-        MYSQL *conn;
-        MYSQL_RES *res;
-        MYSQL_ROW row;
+	MYSQL_RES *res;
+	MYSQL_ROW row;
         char server[100];
         char user[100];
         char password[100];
@@ -49,7 +51,7 @@ int main(int argc, char *argv[])
 		fprintf(stderr, "%s\n", mysql_error(conn));
 		exit(1);
 	}
-	if (mysql_query(conn, "show tables")) {
+	if (mysql_query(conn, "SHOW TABLES")) {
 		fprintf(stderr, "%s\n", mysql_error(conn));
 		exit(1);
 	}
@@ -64,6 +66,12 @@ int main(int argc, char *argv[])
 	set_command(client);
 
 	discord_run(client);
+
+/*
+ * any code after this isnt supposed to run.
+ * if this shiz ever starts running tell me because that way i can start freeing memory
+ * end exiting gracefully instead of just breaking shit.
+ */
 
 	printf("\n\nloleoleoleole\n\n\n\n");
 
