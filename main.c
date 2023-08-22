@@ -23,6 +23,8 @@ int main(int argc, char *argv[])
 	} else {
 		config_file = "../config.json";
 	}	
+	ccord_global_init();
+
 	struct discord *client = discord_config_init(config_file);
 	struct ccord_szbuf_readonly config_rtr;
 
@@ -63,7 +65,6 @@ int main(int argc, char *argv[])
 
 	set_prefix(client);
 	discord_set_on_ready(client, &on_ready);
-	set_command(client);
 
 	discord_run(client);
 
@@ -74,6 +75,8 @@ int main(int argc, char *argv[])
  */
 
 	printf("\n\nloleoleoleole\n\n\n\n");
+	discord_cleanup(client);
+	ccord_global_cleanup();
 
 }
 
@@ -97,4 +100,6 @@ void on_ready(struct discord *client, const struct discord_ready *event)
 {
 	log_info("\n\n\n%s#%s connected yeaa.\n\n",
  		event->user->username, event->user->discriminator);
+	set_slash(client, event);
 }
+
