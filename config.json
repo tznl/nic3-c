@@ -1,0 +1,26 @@
+{
+  "logging": {
+    "level": "trace",
+    "filename": "log/bot.log",
+    "quiet": true,
+    "overwrite": true,
+    "use_color": true,
+    "http": {
+      "enable": true,
+      "filename": "log/http.log"
+    },
+    "disable_modules": ["WEBSOCKETS", "USER_AGENT"]
+  },
+
+  "discord": {
+    "token": "your token here",
+    "app_id": "your appid here"
+  },
+
+  "sql": {
+    "host": "localhost",
+    "user": "user",
+    "password": "password",
+    "database": "your db here"
+  }
+}
