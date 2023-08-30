@@ -290,55 +290,8 @@ void inventory(struct discord* client, const struct discord_interaction* event)
 	res = mysql_store_result(conn);
 	row = mysql_fetch_row(res);
 
-	char rarity_text[50];
 	float rarity = (atoi(row[quantity]) / (float)quantity_total) * 100;
-	sprintf(rarity_text, "%.2f%% rarity", rarity);
-
-	char title[50];
-	sprintf(title, "%s's inventory", event->member->user->username);
-
-	struct discord_embed_field fields[] = {
-   			{
-			.name = row[name],
-			.value = row[description],
-		},
-	};
-	
-	struct discord_embed embeds[] = {
-		{
-			.title = title,
-			.description = rarity_text,
-			.timestamp = discord_timestamp(client),
-			.color = (rarity/100) * 16777215,
-			.footer = &(struct discord_embed_footer){
-				.text = row[id]
-				},
-			.image =
-				&(struct discord_embed_image){
-					.url = row[image_link],
-			},
-			.fields =
-				&(struct discord_embed_fields){
-				.size = sizeof(fields) / sizeof *fields,
-				.array = fields,
-				},
-		},
-	};
-	 
-	struct discord_interaction_response params = {
-		.type = DISCORD_INTERACTION_CHANNEL_MESSAGE_WITH_SOURCE,
-		.data = &(struct discord_interaction_callback_data){ 
-			.embeds =
-				&(struct discord_embeds){
-				.size = sizeof(embeds) / sizeof *embeds,
-				.array = embeds,
-				},
-		}
-	};
-	
-	discord_create_interaction_response
-		(client, event->id, event->token, &params, NULL);
-	
+	spawncard_success_embed(client, event, row, rarity);
 
 	mysql_free_result(res);
 }
@@ -394,44 +347,7 @@ void claim_card(struct discord* client, const struct discord_interaction* event)
 	res = mysql_use_result(conn);
 	row = mysql_fetch_row(res);
 
-	char embed_desc[50];
-	sprintf(embed_desc, 
-		"%s was claimed by %s", 
-		row[name],  event->member->user->username);
-
-	char avatar_url[200];
-	sprintf(
-		avatar_url, 
-		"https://cdn.discordapp.com/avatars/%ld/%s.jpg", 
-		 event->member->user->id,
-		 event->member->user->avatar);
-	
-	struct discord_embed embeds[] = {
-		{
-			.title = "card claimed",
-			.description = embed_desc,
-			.timestamp = discord_timestamp(client),
-			.image =
-				&(struct discord_embed_image){
-					.url = avatar_url,
-			},
-		},
-	};
- 
-	struct discord_interaction_response params = {
-		.type = DISCORD_INTERACTION_CHANNEL_MESSAGE_WITH_SOURCE,
-		.data = &(struct discord_interaction_callback_data){ 
-			.embeds =
-				&(struct discord_embeds){
-				.size = sizeof(embeds) / sizeof *embeds,
-				.array = embeds,
-				},
-		}
-	};
-
-	discord_create_interaction_response
-		(client, event->id, event->token, &params, NULL);
-
+	claim_success_embed(client, event, row);
 	spawned_card = 0;
 	mysql_free_result(res);
 }
@@ -492,50 +408,6 @@ void spawn_card(struct discord* client, const struct discord_interaction* event)
 
 	float rarity = ((float)selected_quantity / quantity_total)* 100;
 
-	char rarity_text[50];
-	sprintf(rarity_text, "%.2f%% rarity!", rarity);
-
-	struct discord_embed_field fields[] = {
-    		{
-			.name = rarity_text,
-			.value = "type /claim to capture",
-		},
-	};
-
-	char embed_desc[50];
-	sprintf(embed_desc, "%s available for capture", row[name]);
-
-	struct discord_embed embeds[] = {
-		{
-			.title = "card spawned!1",
-			.description = embed_desc,
-			.timestamp = discord_timestamp(client),
-			.color = (rarity/100) * 16777215,
-			.image =
-				&(struct discord_embed_image){
-					.url = row[image_link],
-			},
-			.fields =
-				&(struct discord_embed_fields){
-				.size = sizeof(fields) / sizeof *fields,
-				.array = fields,
-				},
-		},
-	};
- 
-	struct discord_interaction_response params = {
-		.type = DISCORD_INTERACTION_CHANNEL_MESSAGE_WITH_SOURCE,
-		.data = &(struct discord_interaction_callback_data){ 
-			.embeds =
-				&(struct discord_embeds){
-				.size = sizeof(embeds) / sizeof *embeds,
-				.array = embeds,
-				},
-		}
-	};
-	
-	discord_create_interaction_response
-		(client, event->id, event->token, &params, NULL);
-
+	spawncard_success_embed(client, event, row, rarity);
 	mysql_free_result(res);
 }
