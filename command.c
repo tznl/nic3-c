@@ -4,13 +4,15 @@
 
 #include "discord.h"
 #include "include/command.h"
+#include "include/response.h"
 
 enum cards_columns {id, name, description, quantity, image_link};
 enum cards_relation {user_id, card_id};
 
 int spawned_card = 0;
 
-void on_interaction(struct discord* client, const struct discord_interaction* event)
+void on_interaction
+	(struct discord* client, const struct discord_interaction* event)
 {
 /* user commands */
 
@@ -63,7 +65,8 @@ void set_slash(struct discord* client, const struct discord_ready* event)
 		{
 			.type = DISCORD_APPLICATION_OPTION_INTEGER,
 			.name = "id",
-			.description = "assign numerical identifier (or random if specified)",
+			.description = "assign numerical identifier "
+			"(or random if specified)",
 			.required = true,
 		},
 		{
@@ -81,7 +84,8 @@ void set_slash(struct discord* client, const struct discord_ready* event)
 		{
 			.type = DISCORD_APPLICATION_OPTION_STRING,
 			.name = "quantity",
-			.description = "card quantity (lower quantity is higher rarity)",
+			.description = "card quantity "
+			"(lower quantity is higher rarity)",
 			.required = true,
 		},
 		{
@@ -99,8 +103,10 @@ void set_slash(struct discord* client, const struct discord_ready* event)
 		.default_permission = true,
 		.options =
 			&(struct discord_application_command_options){
-			.size = sizeof(create_card_options) / sizeof *create_card_options,
-			.array = create_card_options,
+				.size = 
+					sizeof(create_card_options) / 
+					sizeof *create_card_options,
+				.array = create_card_options,
 			},
 	};
 	discord_create_global_application_command(
@@ -122,8 +128,9 @@ void set_slash(struct discord* client, const struct discord_ready* event)
 		.default_permission = true,
 		.options =
 			&(struct discord_application_command_options){
-			.size = sizeof(remove_card_options) / sizeof *remove_card_options,
-			.array = remove_card_options,
+				.size = sizeof(remove_card_options) / 
+					sizeof *remove_card_options,
+				.array = remove_card_options,
 			},
 	};
 	discord_create_global_application_command(
@@ -132,29 +139,14 @@ void set_slash(struct discord* client, const struct discord_ready* event)
 	discord_set_on_interaction_create(client, &on_interaction);
 }
 
-void remove_card(struct discord* client, const struct discord_interaction* event)
+void remove_card
+	(struct discord* client, const struct discord_interaction* event)
 {
 	if (event->type != DISCORD_INTERACTION_APPLICATION_COMMAND) return;
 	if (strcmp(event->data->name, "remove_card")) return; 
 	if (atoi( event->data->options->array[0].value) < 1) {
-		struct discord_embed embeds[] = {
-			{
-				.title = "please specifiy an id greater than 0",
-				.timestamp = discord_timestamp(client),
-			},
-		};
-
-		struct discord_interaction_response params = {
-			.type = DISCORD_INTERACTION_CHANNEL_MESSAGE_WITH_SOURCE,
-			.data = &(struct discord_interaction_callback_data){ 
-				.embeds =
-					&(struct discord_embeds){
-					.size = sizeof(embeds) / sizeof *embeds,
-					.array = embeds,
-					},
-			}
-		};
-		discord_create_interaction_response(client, event->id, event->token, &params, NULL);
+		simple_embed_string(client, event, 
+			"specify an id greater than 0");
 		return;
 	}
 
@@ -182,24 +174,8 @@ void remove_card(struct discord* client, const struct discord_interaction* event
 	mysql_free_result(res);
 
 	if (dbcheck_cards == 0 && dbcheck_relation == 0) {
-		struct discord_embed embeds[] = {
-			{
-				.title = "a card with this id doesnt exist ",
-				.timestamp = discord_timestamp(client),
-			},
-		};
-
-		struct discord_interaction_response params = {
-			.type = DISCORD_INTERACTION_CHANNEL_MESSAGE_WITH_SOURCE,
-			.data = &(struct discord_interaction_callback_data){ 
-				.embeds =
-					&(struct discord_embeds){
-					.size = sizeof(embeds) / sizeof *embeds,
-					.array = embeds,
-					},
-			}
-		};
-		discord_create_interaction_response(client, event->id, event->token, &params, NULL);
+		simple_embed_string(client, event, 
+			"a card with this id doesn't exist");
 		return;
 	}
 
@@ -211,48 +187,17 @@ void remove_card(struct discord* client, const struct discord_interaction* event
 		atoi( event->data->options->array[0].value ) );
 	mysql_query(conn, query_buffer);
 
-	struct discord_embed embeds[] = {
-		{
-			.title = "success",
-			.timestamp = discord_timestamp(client),
-		},
-	};
-	struct discord_interaction_response params = {
-		.type = DISCORD_INTERACTION_CHANNEL_MESSAGE_WITH_SOURCE,
-		.data = &(struct discord_interaction_callback_data){ 
-			.embeds =
-				&(struct discord_embeds){
-				.size = sizeof(embeds) / sizeof *embeds,
-				.array = embeds,
-				},
-		}
-	};
-	discord_create_interaction_response(client, event->id, event->token, &params, NULL);
+	simple_embed_string(client, event, "success");
 }
 
-void create_card(struct discord* client, const struct discord_interaction* event)
+void create_card
+	(struct discord* client, const struct discord_interaction* event)
 {
 	if (event->type != DISCORD_INTERACTION_APPLICATION_COMMAND) return;
 	if (strcmp(event->data->name, "create_card")) return; 
 	if (atoi( event->data->options->array[0].value) < 1) {
-		struct discord_embed embeds[] = {
-			{
-				.title = "please specifiy an id greater than 0",
-				.timestamp = discord_timestamp(client),
-			},
-		};
-
-		struct discord_interaction_response params = {
-			.type = DISCORD_INTERACTION_CHANNEL_MESSAGE_WITH_SOURCE,
-			.data = &(struct discord_interaction_callback_data){ 
-				.embeds =
-					&(struct discord_embeds){
-					.size = sizeof(embeds) / sizeof *embeds,
-					.array = embeds,
-					},
-			}
-		};
-		discord_create_interaction_response(client, event->id, event->token, &params, NULL);
+		simple_embed_string(client, event, 
+			"please specify an id greater than 0");
 		return;
 	}
 
@@ -268,24 +213,8 @@ void create_card(struct discord* client, const struct discord_interaction* event
 	mysql_fetch_row(res);
 
 	if (mysql_num_rows(res) != 0) {
-		struct discord_embed embeds[] = {
-			{
-				.title = "a card with this id already exists :<",
-				.timestamp = discord_timestamp(client),
-			},
-		};
-
-		struct discord_interaction_response params = {
-			.type = DISCORD_INTERACTION_CHANNEL_MESSAGE_WITH_SOURCE,
-			.data = &(struct discord_interaction_callback_data){ 
-				.embeds =
-					&(struct discord_embeds){
-					.size = sizeof(embeds) / sizeof *embeds,
-					.array = embeds,
-					},
-			}
-		};
-		discord_create_interaction_response(client, event->id, event->token, &params, NULL);
+		simple_embed_string(client, event, 
+			"a card with this id already exists :<");
 		mysql_free_result(res);
 		return;
 	}
@@ -302,23 +231,7 @@ void create_card(struct discord* client, const struct discord_interaction* event
 
 	mysql_query(conn, query_buffer);
 
-	struct discord_embed embeds[] = {
-		{
-			.title = "success",
-			.timestamp = discord_timestamp(client),
-		},
-	};
-	struct discord_interaction_response params = {
-		.type = DISCORD_INTERACTION_CHANNEL_MESSAGE_WITH_SOURCE,
-		.data = &(struct discord_interaction_callback_data){ 
-			.embeds =
-				&(struct discord_embeds){
-				.size = sizeof(embeds) / sizeof *embeds,
-				.array = embeds,
-				},
-		}
-	};
-	discord_create_interaction_response(client, event->id, event->token, &params, NULL);
+	simple_embed_string(client, event, "success");
 }
 void clear_card(struct discord* client, const struct discord_interaction* event)
 {
@@ -326,49 +239,13 @@ void clear_card(struct discord* client, const struct discord_interaction* event)
 	if (event->type != DISCORD_INTERACTION_APPLICATION_COMMAND) return;
 	if (strcmp(event->data->name, "clear")) return; 
 	if (spawned_card == 0) {
-		struct discord_embed embeds[] = {
-			{
-				.title = "no spawned card to clear",
-				.timestamp = discord_timestamp(client),
-			},
-		};
-
-		struct discord_interaction_response params = {
-			.type = DISCORD_INTERACTION_CHANNEL_MESSAGE_WITH_SOURCE,
-			.data = &(struct discord_interaction_callback_data){ 
-				.embeds =
-					&(struct discord_embeds){
-					.size = sizeof(embeds) / sizeof *embeds,
-					.array = embeds,
-					},
-			}
-		};
-		discord_create_interaction_response(client, event->id, event->token, &params, NULL);
+		simple_embed_string(client, event, "no spawned card to clear");
 		return;
 	}
 
 	spawned_card = 0;
 
-	struct discord_embed embeds[] = {
-		{
-			.title = "spawn cleared",
-			.timestamp = discord_timestamp(client),
-		},
-	};
-
-	struct discord_interaction_response params = {
-		.type = DISCORD_INTERACTION_CHANNEL_MESSAGE_WITH_SOURCE,
-		.data = &(struct discord_interaction_callback_data){ 
-			.embeds =
-				&(struct discord_embeds){
-				.size = sizeof(embeds) / sizeof *embeds,
-				.array = embeds,
-				},
-		}
-	};
- 
-
-	discord_create_interaction_response(client, event->id, event->token, &params, NULL);
+	simple_embed_string(client, event, "spawn cleared");
 }
 
 void inventory(struct discord* client, const struct discord_interaction* event)
@@ -382,32 +259,15 @@ void inventory(struct discord* client, const struct discord_interaction* event)
 
 	char query_buffer[200];
 
-	sprintf(query_buffer, "SELECT card_id FROM relation WHERE user_id = %ld", 
+	sprintf(query_buffer, 
+		"SELECT card_id FROM relation WHERE user_id = %ld", 
 		event->member->user->id);
 	mysql_query(conn, query_buffer);
 	res = mysql_use_result(conn);
 	row = mysql_fetch_row(res);
 
 	if (mysql_num_rows(res) == 0) {
-		struct discord_embed embeds[] = {
-			{
-				.title = "you have no cards :<",
-				.timestamp = discord_timestamp(client),
-			},
-		};
-	
-		struct discord_interaction_response params = {
-			.type = DISCORD_INTERACTION_CHANNEL_MESSAGE_WITH_SOURCE,
-			.data = &(struct discord_interaction_callback_data){ 
-				.embeds =
-					&(struct discord_embeds){
-					.size = sizeof(embeds) / sizeof *embeds,
-					.array = embeds,
-					},
-			}
-		};
-
-		discord_create_interaction_response(client, event->id, event->token, &params, NULL);
+		simple_embed_string(client, event, "you have no cards :<");
 		mysql_free_result(res);
 		return;
 	}
@@ -476,7 +336,8 @@ void inventory(struct discord* client, const struct discord_interaction* event)
 		}
 	};
 	
-	discord_create_interaction_response(client, event->id, event->token, &params, NULL);
+	discord_create_interaction_response
+		(client, event->id, event->token, &params, NULL);
 	
 
 	mysql_free_result(res);
@@ -487,25 +348,7 @@ void claim_card(struct discord* client, const struct discord_interaction* event)
 	if (event->type != DISCORD_INTERACTION_APPLICATION_COMMAND) return;
 	if (strcmp(event->data->name, "claim")) return; 
 	if (spawned_card == 0) {
-		struct discord_embed embeds[] = {
-			{
-				.title = "no card to claim :<",
-				.timestamp = discord_timestamp(client),
-			},
-		};
-	
-		struct discord_interaction_response params = {
-			.type = DISCORD_INTERACTION_CHANNEL_MESSAGE_WITH_SOURCE,
-			.data = &(struct discord_interaction_callback_data){ 
-				.embeds =
-					&(struct discord_embeds){
-					.size = sizeof(embeds) / sizeof *embeds,
-					.array = embeds,
-					},
-			}
-		};
-
-		discord_create_interaction_response(client, event->id, event->token, &params, NULL);
+		simple_embed_string(client, event, "no card to claim :<");
 		return;
 	}
 
@@ -518,8 +361,9 @@ void claim_card(struct discord* client, const struct discord_interaction* event)
 
 /* check for redundancy */
 
-	sprintf(query_buffer, "SELECT * FROM relation WHERE user_id = %ld AND card_id = %d", 
-		 event->member->user->id,
+	sprintf(query_buffer, 
+		"SELECT * FROM relation WHERE user_id = %ld AND card_id = %d", 
+		event->member->user->id,
 		spawned_card);
 
 
@@ -528,45 +372,32 @@ void claim_card(struct discord* client, const struct discord_interaction* event)
 	row = mysql_fetch_row(res);
 
 	if (mysql_num_rows(res) != 0) {
-		struct discord_embed embeds[] = {
-			{
-				.title = "you already have this cardd",
-				.timestamp = discord_timestamp(client),
-			},
-		};
-	
-		struct discord_interaction_response params = {
-			.type = DISCORD_INTERACTION_CHANNEL_MESSAGE_WITH_SOURCE,
-			.data = &(struct discord_interaction_callback_data){ 
-				.embeds =
-					&(struct discord_embeds){
-					.size = sizeof(embeds) / sizeof *embeds,
-					.array = embeds,
-					},
-			}
-		};
-
-		discord_create_interaction_response(client, event->id, event->token, &params, NULL);
+		simple_embed_string(client, event, 
+			"you already have this cardd");
 		mysql_free_result(res);
 		return;
 	}
 
 /* store card into relation database */
 
-	sprintf(query_buffer, "INSERT INTO relation( user_id, card_id) VALUES( %ld , %d )", 
-		 event->member->user->id,
+	sprintf(query_buffer, 
+		"INSERT INTO relation( user_id, card_id) VALUES( %ld , %d )", 
+		event->member->user->id,
 		spawned_card);
 	mysql_query(conn, query_buffer);
 
 /* idk lole print results */
 
-	sprintf(query_buffer, "SELECT * FROM cards WHERE id = %d", spawned_card);
+	sprintf(query_buffer, 
+		"SELECT * FROM cards WHERE id = %d", spawned_card);
 	mysql_query(conn, query_buffer);
 	res = mysql_use_result(conn);
 	row = mysql_fetch_row(res);
 
 	char embed_desc[50];
-	sprintf(embed_desc, "%s was claimed by %s", row[name],  event->member->user->username);
+	sprintf(embed_desc, 
+		"%s was claimed by %s", 
+		row[name],  event->member->user->username);
 
 	char avatar_url[200];
 	sprintf(
@@ -598,7 +429,8 @@ void claim_card(struct discord* client, const struct discord_interaction* event)
 		}
 	};
 
-	discord_create_interaction_response(client, event->id, event->token, &params, NULL);
+	discord_create_interaction_response
+		(client, event->id, event->token, &params, NULL);
 
 	spawned_card = 0;
 	mysql_free_result(res);
@@ -609,25 +441,8 @@ void spawn_card(struct discord* client, const struct discord_interaction* event)
 	if (event->type != DISCORD_INTERACTION_APPLICATION_COMMAND) return;
 	if (strcmp(event->data->name, "spawncard")) return; 
 	if (spawned_card != 0) {
-		struct discord_embed embeds[] = {
-			{
-				.title = "card already spawned",
-				.timestamp = discord_timestamp(client),
-			},
-		};
-	
-		struct discord_interaction_response params = {
-			.type = DISCORD_INTERACTION_CHANNEL_MESSAGE_WITH_SOURCE,
-			.data = &(struct discord_interaction_callback_data){ 
-				.embeds =
-					&(struct discord_embeds){
-					.size = sizeof(embeds) / sizeof *embeds,
-					.array = embeds,
-					},
-			}
-		};
-	
-		discord_create_interaction_response(client, event->id, event->token, &params, NULL);
+		simple_embed_string(client, event, 
+			"there is already a card spawned");
 		return;
 	}
 
@@ -667,7 +482,8 @@ void spawn_card(struct discord* client, const struct discord_interaction* event)
 	printf("id: %d\n\n", spawned_card);
 	mysql_free_result(res);
 
-	sprintf(query_buffer, "SELECT * FROM cards WHERE id = %d", spawned_card);
+	sprintf(query_buffer, 
+		"SELECT * FROM cards WHERE id = %d", spawned_card);
 	mysql_query(conn, query_buffer);
 	res = mysql_use_result(conn);
 	row = mysql_fetch_row(res);
@@ -718,7 +534,8 @@ void spawn_card(struct discord* client, const struct discord_interaction* event)
 		}
 	};
 	
-	discord_create_interaction_response(client, event->id, event->token, &params, NULL);
+	discord_create_interaction_response
+		(client, event->id, event->token, &params, NULL);
 
 	mysql_free_result(res);
 }

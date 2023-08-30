@@ -35,21 +35,30 @@ int main(int argc, char *argv[])
         char password[100];
         char database[100];
 
-	config_rtr = discord_config_get_field(client, (char *[2]){ "sql", "host" }, 2);
-	snprintf(server, sizeof(server), "%.*s", (int)config_rtr.size, config_rtr.start);
+	config_rtr = discord_config_get_field
+		(client, (char *[2]){ "sql", "host" }, 2);
+	snprintf(server, sizeof(server), "%.*s", 
+		(int)config_rtr.size, config_rtr.start);
 
-	config_rtr = discord_config_get_field(client, (char *[2]){ "sql", "user" }, 2);
-	snprintf(user, sizeof(user), "%.*s", (int)config_rtr.size, config_rtr.start);
+	config_rtr = discord_config_get_field
+		(client, (char *[2]){ "sql", "user" }, 2);
+	snprintf(user, sizeof(user), "%.*s", 
+		(int)config_rtr.size, config_rtr.start);
 
-	config_rtr = discord_config_get_field(client, (char *[2]){ "sql", "password" }, 2);
-	snprintf(password, sizeof(password), "%.*s", (int)config_rtr.size, config_rtr.start);
+	config_rtr = discord_config_get_field
+		(client, (char *[2]){ "sql", "password" }, 2);
+	snprintf(password, sizeof(password), "%.*s", 
+		(int)config_rtr.size, config_rtr.start);
 
- 	config_rtr = discord_config_get_field(client, (char *[2]){ "sql", "database" }, 2);
-	snprintf(database, sizeof(database), "%.*s", (int)config_rtr.size, config_rtr.start);
+ 	config_rtr = discord_config_get_field
+		(client, (char *[2]){ "sql", "database" }, 2);
+	snprintf(database, sizeof(database), "%.*s", 
+		(int)config_rtr.size, config_rtr.start);
 
 	conn = mysql_init(NULL);
 
-	if (!mysql_real_connect(conn, server, user, password, database, 0, NULL, 0)) {
+	if (!mysql_real_connect
+	(conn, server, user, password, database, 0, NULL, 0)) {
 		fprintf(stderr, "%s\n", mysql_error(conn));
 		exit(1);
 	}
@@ -70,8 +79,8 @@ int main(int argc, char *argv[])
 
 /*
  * any code after this isnt supposed to run.
- * if this shiz ever starts running tell me because that way i can start freeing memory
- * end exiting gracefully instead of just breaking shit.
+ * if this shiz ever starts running tell me because that way i can start freeing
+ * memory and exiting gracefully instead of just breaking shit.
  */
 
 	printf("\n\nloleoleoleole\n\n\n\n");

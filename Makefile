@@ -9,7 +9,7 @@ CC_LIB		= $(CONCORD_DIR)/lib
 CONCORD_CFLAG	= -I$(CC_CORE) -I$(CC_INCLUDE) -I$(CC_GENCODECS) -L$(CC_LIB)
 
 
-SRC		= main.c command.c
+SRC		= main.c command.c response.c
 
 #normal stuff
 CFLAGS  += -O0 -g -pthread -Wall $(CONCORD_CFLAG) \
