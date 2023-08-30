@@ -31,7 +31,7 @@ void claim_success_embed
 	char embed_desc[50];
 	sprintf(embed_desc,
 		"%s was claimed by %s",
-	row[1],  event->member->user->username);
+	row[C_NAME],  event->member->user->username);
 
 	char avatar_url[200];
 	sprintf(avatar_url, "https://cdn.discordapp.com/avatars/%ld/%s.jpg",
@@ -79,7 +79,7 @@ MYSQL_ROW row, float rarity)
 	};
 
 	char embed_desc[50];
-	sprintf(embed_desc, "%s available for capture", row[1]);
+	sprintf(embed_desc, "%s available for capture", row[C_NAME]);
 
 	struct discord_embed embeds[] = {
 		{
@@ -89,7 +89,7 @@ MYSQL_ROW row, float rarity)
 			.color = (rarity/100) * 16777215,
 			.image =
 				&(struct discord_embed_image){
-					.url = row[4],
+					.url = row[C_IMAGE_LINK],
 				},
 			.fields =
 				&(struct discord_embed_fields){
@@ -116,8 +116,21 @@ MYSQL_ROW row, float rarity)
 
 void inventory_embed
 (struct discord* client, const struct discord_interaction* event, 
-MYSQL_ROW row, float rarity)
+MYSQL_ROW row, float rarity, int type)
 {
+	int final_type;
+
+	switch (type) {
+		case DISCORD_INTERACTION_APPLICATION_COMMAND: 
+			final_type = 
+				DISCORD_INTERACTION_CHANNEL_MESSAGE_WITH_SOURCE;
+			break;
+		case DISCORD_INTERACTION_MESSAGE_COMPONENT: 
+			final_type = DISCORD_INTERACTION_UPDATE_MESSAGE;
+			break;
+		default: break;
+	}
+
 	char rarity_text[50];
 	sprintf(rarity_text, "%.2f%% rarity", rarity);
 
@@ -126,8 +139,8 @@ MYSQL_ROW row, float rarity)
 
 	struct discord_embed_field fields[] = {
 		{
-			.name = row[1],
-			.value = row[2],
+			.name = row[C_NAME],
+			.value = row[C_DESCRIPTION],
 		},
 	};
 
@@ -138,28 +151,62 @@ MYSQL_ROW row, float rarity)
 			.timestamp = discord_timestamp(client),
 			.color = (rarity/100) * 16777215,
 			.footer = &(struct discord_embed_footer){
-			.text = row[0]
-		},
-		.image =
-			&(struct discord_embed_image){
-				.url = row[4],
+				.text = row[C_ID]
 			},
-		.fields =
-			&(struct discord_embed_fields){
-				.size = sizeof(fields) / sizeof *fields,
-				.array = fields,
+			.image =
+				&(struct discord_embed_image){
+					.url = row[C_IMAGE_LINK],
+				},
+			.fields =
+				&(struct discord_embed_fields){
+					.size = sizeof(fields) / sizeof *fields,
+					.array = fields,
 			},
 		},
 	};
 
+	struct discord_component select_menu[] = {
+		{
+			.type = DISCORD_COMPONENT_BUTTON,
+			.custom_id = "button_left",
+			.style = DISCORD_BUTTON_PRIMARY,
+			.label = "Previous",
+		},
+		{
+			.type = DISCORD_COMPONENT_BUTTON,
+			.custom_id = "button_right",
+			.style = DISCORD_BUTTON_PRIMARY,
+			.label = "Next",
+		},
+	};
+
+	struct discord_component action_rows[] = {
+		{
+			.type = DISCORD_COMPONENT_ACTION_ROW,
+			.components =
+				&(struct discord_components){
+					.size = sizeof(select_menu) / 
+						sizeof *select_menu,
+					.array = select_menu,
+				},
+		},
+	};
+		
 	struct discord_interaction_response params = {
-		.type = DISCORD_INTERACTION_CHANNEL_MESSAGE_WITH_SOURCE,
+		.type = final_type,
 		.data = &(struct discord_interaction_callback_data){
-		.embeds =
-			&(struct discord_embeds){
-			.size = sizeof(embeds) / sizeof *embeds,
-			.array = embeds,
-			},
+			.embeds =
+				&(struct discord_embeds){
+					.size = sizeof(embeds) / 
+						sizeof *embeds,
+					.array = embeds,
+				},
+			.components =                                            
+				&(struct discord_components){                    
+					.size = sizeof(action_rows) / 
+						sizeof *action_rows,
+					.array = action_rows,                            
+				},
 		}
 	};
 

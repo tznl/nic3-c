@@ -2,6 +2,9 @@
 #define RESPONSE_H
 #include <mysql.h>
 
+enum cards_columns {C_ID, C_NAME, C_DESCRIPTION, C_QUANTITY, C_IMAGE_LINK};         
+enum cards_relation {R_USER_ID, R_CARD_ID}; 
+
 void simple_embed_string
 	(struct discord*, const struct discord_interaction*, char*);
 void claim_success_embed
@@ -13,5 +16,5 @@ void spawncard_success_embed
 
 void inventory_embed                                                     
 	(struct discord* client, const struct discord_interaction* event,
-	MYSQL_ROW row, float rarity);
+	MYSQL_ROW row, float rarity, int type);
 #endif

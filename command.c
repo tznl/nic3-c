@@ -6,9 +6,6 @@
 #include "include/command.h"
 #include "include/response.h"
 
-enum cards_columns {id, name, description, quantity, image_link};
-enum cards_relation {user_id, card_id};
-
 int spawned_card = 0;
 
 void on_interaction
@@ -250,8 +247,15 @@ void clear_card(struct discord* client, const struct discord_interaction* event)
 
 void inventory(struct discord* client, const struct discord_interaction* event)
 {
-	if (event->type != DISCORD_INTERACTION_APPLICATION_COMMAND ||
-		strcmp(event->data->name, "inventory")) return; 
+	if ((event->type != DISCORD_INTERACTION_APPLICATION_COMMAND &&
+	     event->type != DISCORD_INTERACTION_MESSAGE_COMPONENT)) { 
+		return;
+	} else if (event->type == DISCORD_INTERACTION_APPLICATION_COMMAND &&
+		   strcmp(event->data->name, "inventory")){
+		return;
+	}
+
+	int type;
 	extern MYSQL *conn;
 
 	MYSQL_RES *res;
@@ -290,9 +294,16 @@ void inventory(struct discord* client, const struct discord_interaction* event)
 	res = mysql_store_result(conn);
 	row = mysql_fetch_row(res);
 
-	float rarity = (atoi(row[quantity]) / (float)quantity_total) * 100;
-	spawncard_success_embed(client, event, row, rarity);
+	float rarity = (atoi(row[C_QUANTITY]) / (float)quantity_total) * 100;
 
+	if (event->type == DISCORD_INTERACTION_MESSAGE_COMPONENT) {
+		type = DISCORD_INTERACTION_MESSAGE_COMPONENT;
+		inventory_embed(client, event, row, rarity, type);
+		mysql_free_result(res);
+		return;	
+	}
+	type = DISCORD_INTERACTION_APPLICATION_COMMAND;
+	inventory_embed(client, event, row, rarity, type);
 	mysql_free_result(res);
 }
 
@@ -404,7 +415,7 @@ void spawn_card(struct discord* client, const struct discord_interaction* event)
 	res = mysql_use_result(conn);
 	row = mysql_fetch_row(res);
 
-	int selected_quantity = atoi(row[quantity]);
+	int selected_quantity = atoi(row[C_QUANTITY]);
 
 	float rarity = ((float)selected_quantity / quantity_total)* 100;
 
