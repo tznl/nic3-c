@@ -12,8 +12,8 @@ void on_interaction
 	(struct discord* client, const struct discord_interaction* event)
 {
 /* user commands */
-
 	inventory	(client, event);
+	display_card	(client, event);
 	claim_card	(client, event);
 
 /* admin commands */
@@ -33,6 +33,14 @@ void set_slash(struct discord* client, const struct discord_ready* event)
 	};
 	discord_create_global_application_command(
 		client, event->application->id, &clear_params, NULL);
+
+	struct discord_create_global_application_command display_card_params = {
+		.name = "display_card",
+		.description = "view a claimed card by id",
+		.default_permission = true,
+	};
+	discord_create_global_application_command(
+		client, event->application->id, &display_card_params, NULL);
 
 	struct discord_create_global_application_command inventory_params = {
 		.name = "inventory",
@@ -245,17 +253,12 @@ void clear_card(struct discord* client, const struct discord_interaction* event)
 	simple_embed_string(client, event, "spawn cleared");
 }
 
-void inventory(struct discord* client, const struct discord_interaction* event)
+void display_card
+	(struct discord* client, const struct discord_interaction* event)
 {
-	if ((event->type != DISCORD_INTERACTION_APPLICATION_COMMAND &&
-	     event->type != DISCORD_INTERACTION_MESSAGE_COMPONENT)) { 
-		return;
-	} else if (event->type == DISCORD_INTERACTION_APPLICATION_COMMAND &&
-		   strcmp(event->data->name, "inventory")){
-		return;
-	}
+	if (event->type != DISCORD_INTERACTION_APPLICATION_COMMAND) return;
+	if (strcmp(event->data->name, "display_card")) return; 
 
-	int type;
 	extern MYSQL *conn;
 
 	MYSQL_RES *res;
@@ -296,14 +299,59 @@ void inventory(struct discord* client, const struct discord_interaction* event)
 
 	float rarity = (atoi(row[C_QUANTITY]) / (float)quantity_total) * 100;
 
-	if (event->type == DISCORD_INTERACTION_MESSAGE_COMPONENT) {
-		type = DISCORD_INTERACTION_MESSAGE_COMPONENT;
-		inventory_embed(client, event, row, rarity, type);
-		mysql_free_result(res);
-		return;	
+	inventory_embed(client, event, row, rarity);
+	mysql_free_result(res);
+}
+
+void inventory
+	(struct discord* client, const struct discord_interaction* event)
+{
+	if (event->type != DISCORD_INTERACTION_APPLICATION_COMMAND) return;
+	if (strcmp(event->data->name, "inventory")) return; 
+
+	extern MYSQL *conn;
+	MYSQL_RES *res;
+	MYSQL_ROW row;
+	int quantity_total;
+	int i;
+	char final_output[DISCORD_MAX_MESSAGE_LEN];
+	char line_buffer[500];
+	char query_buffer[200];
+
+	mysql_query(conn, "SELECT SUM(quantity) FROM cards");
+	res = mysql_use_result(conn);
+	row = mysql_fetch_row(res);
+	quantity_total = atoi(row[0]);
+	mysql_free_result(res);
+
+
+	sprintf(query_buffer, 
+		"SELECT * FROM cards, relation "
+		"WHERE cards.id = relation.card_id "
+		"AND relation.user_id = %ld "
+		"ORDER BY cards.id", 
+		event->member->user->id);
+
+	mysql_query(conn, query_buffer);
+	res = mysql_use_result(conn);
+
+		puts("break2");
+	for (i=0; i < (quantity_total-1); i++) {
+		row = mysql_fetch_row(res);
+		puts("break1");
+		snprintf(line_buffer,
+			sizeof(line_buffer),
+			"%s, %s, %s, %s, %s\n", 
+			row[C_ID], row[C_NAME], row[C_DESCRIPTION], 
+			row[C_QUANTITY], row[C_IMAGE_LINK]);
+
+		puts("break2");
+		strcat(final_output, line_buffer);
+		printf("buffer: \n[\n%s\n]\n", line_buffer);
+		printf("final:  \n[\n%s\n]\n", final_output);
 	}
-	type = DISCORD_INTERACTION_APPLICATION_COMMAND;
-	inventory_embed(client, event, row, rarity, type);
+
+		puts("break3");
 	mysql_free_result(res);
 }
 
@@ -385,7 +433,7 @@ void spawn_card(struct discord* client, const struct discord_interaction* event)
 	res = mysql_use_result(conn);
 	row = mysql_fetch_row(res);
 
-	int rd = 0;
+	int rd;
 	int quantity_total = atoi(row[0]);
 	rd = rand() % quantity_total + 1;
 
@@ -396,11 +444,13 @@ void spawn_card(struct discord* client, const struct discord_interaction* event)
 
 /* grab the mysql entry depending on the random id grabbed */
 
-	sprintf(query_buffer, 
+	sprintf(query_buffer,
 		"SELECT id FROM "
-		"(SELECT id, SUM(quantity) "
-		"OVER (ORDER BY quantity) AS total FROM cards) a "
-		"WHERE total >= %d ORDER BY id ASC LIMIT 0, 1", rd);
+		"(SELECT id, quantity, "
+		"@total := @total + quantity AS csum FROM cards, "
+		"(SELECT @total := 0) AS total) a "
+		"WHERE csum >= %d ORDER BY id ASC LIMIT 0, 1"
+		, rd);
 
 	mysql_query(conn, query_buffer);
 	res = mysql_use_result(conn);

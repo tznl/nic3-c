@@ -116,21 +116,8 @@ MYSQL_ROW row, float rarity)
 
 void inventory_embed
 (struct discord* client, const struct discord_interaction* event, 
-MYSQL_ROW row, float rarity, int type)
+MYSQL_ROW row, float rarity)
 {
-	int final_type;
-
-	switch (type) {
-		case DISCORD_INTERACTION_APPLICATION_COMMAND: 
-			final_type = 
-				DISCORD_INTERACTION_CHANNEL_MESSAGE_WITH_SOURCE;
-			break;
-		case DISCORD_INTERACTION_MESSAGE_COMPONENT: 
-			final_type = DISCORD_INTERACTION_UPDATE_MESSAGE;
-			break;
-		default: break;
-	}
-
 	char rarity_text[50];
 	sprintf(rarity_text, "%.2f%% rarity", rarity);
 
@@ -164,36 +151,8 @@ MYSQL_ROW row, float rarity, int type)
 			},
 		},
 	};
-
-	struct discord_component select_menu[] = {
-		{
-			.type = DISCORD_COMPONENT_BUTTON,
-			.custom_id = "button_left",
-			.style = DISCORD_BUTTON_PRIMARY,
-			.label = "Previous",
-		},
-		{
-			.type = DISCORD_COMPONENT_BUTTON,
-			.custom_id = "button_right",
-			.style = DISCORD_BUTTON_PRIMARY,
-			.label = "Next",
-		},
-	};
-
-	struct discord_component action_rows[] = {
-		{
-			.type = DISCORD_COMPONENT_ACTION_ROW,
-			.components =
-				&(struct discord_components){
-					.size = sizeof(select_menu) / 
-						sizeof *select_menu,
-					.array = select_menu,
-				},
-		},
-	};
-		
 	struct discord_interaction_response params = {
-		.type = final_type,
+		.type = DISCORD_INTERACTION_CHANNEL_MESSAGE_WITH_SOURCE,
 		.data = &(struct discord_interaction_callback_data){
 			.embeds =
 				&(struct discord_embeds){
@@ -201,13 +160,7 @@ MYSQL_ROW row, float rarity, int type)
 						sizeof *embeds,
 					.array = embeds,
 				},
-			.components =                                            
-				&(struct discord_components){                    
-					.size = sizeof(action_rows) / 
-						sizeof *action_rows,
-					.array = action_rows,                            
-				},
-		}
+		},
 	};
 
 	discord_create_interaction_response
