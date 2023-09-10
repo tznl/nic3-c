@@ -159,6 +159,27 @@ void set_slash(struct discord* client, const struct discord_ready* event)
 	discord_set_on_interaction_create(client, &on_interaction);
 }
 
+int permission_check
+(struct discord* client, const struct discord_interaction* event)
+{
+	long master_id;
+	char id_buffer[100];
+	struct ccord_szbuf_readonly config_rtr;
+
+	config_rtr = discord_config_get_field
+		(client, (char *[2]){ "misc", "master_id" }, 2);
+	snprintf(id_buffer, sizeof(id_buffer), "%.*s",
+		(int)config_rtr.size, config_rtr.start);
+
+	master_id = atol(id_buffer);
+	if (event->member->user->id != master_id) {
+		simple_embed_string(client, event, 
+			"access denied");
+		return 1;
+	}
+	return 0;
+}
+
 void remove_card
 	(struct discord* client, const struct discord_interaction* event)
 {
@@ -167,6 +188,9 @@ void remove_card
 	if (atoi( event->data->options->array[0].value) < 1) {
 		simple_embed_string(client, event, 
 			"specify an id greater than 0");
+		return;
+	}
+	if (permission_check(client, event)) {
 		return;
 	}
 
@@ -220,6 +244,9 @@ void create_card
 			"please specify an id greater than 0");
 		return;
 	}
+	if (permission_check(client, event)) {
+		return;
+	}
 
 	extern MYSQL *conn;
 	MYSQL_RES *res;
@@ -260,6 +287,9 @@ void clear_card(struct discord* client, const struct discord_interaction* event)
 	if (strcmp(event->data->name, "clear")) return; 
 	if (spawned_card == 0) {
 		simple_embed_string(client, event, "no spawned card to clear");
+		return;
+	}
+	if (permission_check(client, event)) {
 		return;
 	}
 
@@ -375,7 +405,6 @@ void claim_card(struct discord* client, const struct discord_interaction* event)
 		simple_embed_string(client, event, "no card to claim :<");
 		return;
 	}
-
 	extern MYSQL *conn;
 
 	MYSQL_RES *res;
@@ -430,6 +459,9 @@ void spawn_card(struct discord* client, const struct discord_interaction* event)
 	if (spawned_card != 0) {
 		simple_embed_string(client, event, 
 			"there is already a card spawned");
+		return;
+	}
+	if (permission_check(client, event)) {
 		return;
 	}
 

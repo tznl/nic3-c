@@ -55,6 +55,8 @@ int main(int argc, char *argv[])
 	snprintf(database, sizeof(database), "%.*s", 
 		(int)config_rtr.size, config_rtr.start);
 
+
+
 	conn = mysql_init(NULL);
 
 	if (!mysql_real_connect
@@ -111,4 +113,3 @@ void on_ready(struct discord *client, const struct discord_ready *event)
  		event->user->username, event->user->discriminator);
 	set_slash(client, event);
 }
-

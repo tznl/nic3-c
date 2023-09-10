@@ -10,4 +10,5 @@ void inventory(struct discord*, const struct discord_interaction*);
 void display_card(struct discord*, const struct discord_interaction*);
 void clear_card(struct discord*, const struct discord_interaction*);
 void on_interaction(struct discord*, const struct discord_interaction*);
+int permission_check (struct discord*, const struct discord_interaction*);
 #endif

@@ -22,5 +22,8 @@
     "user": "user",
     "password": "password",
     "database": "your db here"
+  },
+  "misc": {
+    "master_id": "user id here"
   }
 }
