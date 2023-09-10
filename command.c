@@ -34,10 +34,25 @@ void set_slash(struct discord* client, const struct discord_ready* event)
 	discord_create_global_application_command(
 		client, event->application->id, &clear_params, NULL);
 
+	struct discord_application_command_option display_card_options[] = {
+		{
+			.type = DISCORD_APPLICATION_OPTION_INTEGER,
+			.name = "id",
+			.description = "id of card to display",
+			.required = true,
+		},
+	};
 	struct discord_create_global_application_command display_card_params = {
 		.name = "display_card",
 		.description = "view a claimed card by id",
 		.default_permission = true,
+		.options =
+			&(struct discord_application_command_options){
+				.size = 
+					sizeof(display_card_options) / 
+					sizeof *display_card_options,
+				.array = display_card_options,
+			},
 	};
 	discord_create_global_application_command(
 		client, event->application->id, &display_card_params, NULL);
@@ -260,21 +275,22 @@ void display_card
 	if (strcmp(event->data->name, "display_card")) return; 
 
 	extern MYSQL *conn;
-
 	MYSQL_RES *res;
 	MYSQL_ROW row;
-
 	char query_buffer[200];
+	int id = atoi(event->data->options->array[0].value);
 
 	sprintf(query_buffer, 
-		"SELECT card_id FROM relation WHERE user_id = %ld", 
-		event->member->user->id);
+	"SELECT card_id FROM relation WHERE user_id = %ld AND card_id = %d",
+		event->member->user->id, id);
+
 	mysql_query(conn, query_buffer);
 	res = mysql_use_result(conn);
 	row = mysql_fetch_row(res);
 
 	if (mysql_num_rows(res) == 0) {
-		simple_embed_string(client, event, "you have no cards :<");
+		simple_embed_string(client, event, 
+			"you have not claimed a card with this id");
 		mysql_free_result(res);
 		return;
 	}
@@ -288,10 +304,9 @@ void display_card
 
 	sprintf(query_buffer, 
 		"SELECT * FROM cards, relation "
-		"WHERE cards.id = relation.card_id "
-		"AND relation.user_id = %ld "
-		"ORDER BY cards.id", 
-		event->member->user->id);
+		"WHERE cards.id = %d "
+		"AND relation.user_id = %ld ", 
+		id, event->member->user->id);
 
 	mysql_query(conn, query_buffer);
 	res = mysql_store_result(conn);
@@ -314,7 +329,7 @@ void inventory
 	MYSQL_ROW row;
 	int quantity_total;
 	int i;
-	char final_output[DISCORD_MAX_MESSAGE_LEN];
+	char final_output[99999];
 	char line_buffer[500];
 	char query_buffer[200];
 
@@ -335,23 +350,20 @@ void inventory
 	mysql_query(conn, query_buffer);
 	res = mysql_use_result(conn);
 
-		puts("break2");
+	snprintf(final_output,
+		sizeof(final_output),
+		"type /display_card <id> to see full card information "
+		"\n\n\n");
+
 	for (i=0; i < (quantity_total-1); i++) {
 		row = mysql_fetch_row(res);
-		puts("break1");
 		snprintf(line_buffer,
 			sizeof(line_buffer),
-			"%s, %s, %s, %s, %s\n", 
-			row[C_ID], row[C_NAME], row[C_DESCRIPTION], 
-			row[C_QUANTITY], row[C_IMAGE_LINK]);
-
-		puts("break2");
+			"id: %s,\n name: %s\n\n", 
+			row[C_ID], row[C_NAME]);
 		strcat(final_output, line_buffer);
-		printf("buffer: \n[\n%s\n]\n", line_buffer);
-		printf("final:  \n[\n%s\n]\n", final_output);
 	}
-
-		puts("break3");
+	simple_embed_string(client, event, final_output);
 	mysql_free_result(res);
 }
 

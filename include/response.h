@@ -16,4 +16,7 @@ void spawncard_success_embed
 
 void inventory_embed                                                     
 (struct discord*, const struct discord_interaction*, MYSQL_ROW, float);
+
+void simple_inventory
+(struct discord*, const struct discord_interaction*, char*);
 #endif

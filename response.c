@@ -166,3 +166,8 @@ MYSQL_ROW row, float rarity)
 	discord_create_interaction_response
 		(client, event->id, event->token, &params, NULL);
 }
+
+void simple_inventory
+(struct discord* client, const struct discord_interaction* event, char* text)
+{
+}
